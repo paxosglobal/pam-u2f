@@ -11,7 +11,7 @@
 #include "cfg.h"
 
 #define BUFSIZE 1024
-#define MAX_DEVS 2400
+#define MAX_DEVS 2400 // Consumes n*sizeof(device_t) bytes on the heap. i.e. 40 B per device
 #define DEFAULT_AUTHFILE_DIR_VAR "XDG_CONFIG_HOME"
 #define DEFAULT_AUTHFILE "Yubico/u2f_keys"
 #define DEFAULT_AUTHFILE_SSH "id_ecdsa_sk"
