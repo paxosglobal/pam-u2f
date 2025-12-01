@@ -9,7 +9,7 @@
 #include <security/pam_appl.h>
 
 #define BUFSIZE 1024
-#define MAX_DEVS 24
+#define MAX_DEVS 2400 // Consumed sizeof(device_t)*n heap, approx 40*n bytes
 #define DEFAULT_AUTHFILE_DIR_VAR "XDG_CONFIG_HOME"
 #define DEFAULT_AUTHFILE "Yubico/u2f_keys"
 #define DEFAULT_AUTHFILE_SSH "id_ecdsa_sk"
