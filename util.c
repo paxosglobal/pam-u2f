@@ -21,7 +21,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <arpa/inet.h>
-#include <syslog.h>
 #include <security/pam_ext.h>
 
 #include "b64.h"
