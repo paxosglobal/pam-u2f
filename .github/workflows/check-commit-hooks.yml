@@ -1,23 +1,17 @@
-name: format
+name: Check commit hooks
 
 on: [push, pull_request]
 
 jobs:
-  format:
+  commit_msg:
     runs-on: ubuntu-24.04
-    env:
-      CLANG_FORMAT_VERSION: -15
     steps:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - name: Dependencies
-      run: |
-        sudo apt -q update
-        sudo apt install -q -y "clang-format${CLANG_FORMAT_VERSION}"
     - name: Check
       run: |
-        if [[ -n "${GITHUB_BASE_REF}" ]]; then
+        if [ -n "${GITHUB_BASE_REF}" ]; then
           # pull request, check head branch against base branch
           GITHUB_BEFORE="$(git ls-remote origin "${GITHUB_BASE_REF}" | cut -f1)"
         elif [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
@@ -31,4 +25,7 @@ jobs:
         fi
 
         # github interleaves stderr and stdout, redirect everything to stdout
-        /bin/bash -eu build-aux/ci/format-code.sh "${GITHUB_BEFORE}..${GITHUB_SHA}" 2>&1
+        exec 2>&1
+
+        export GIT_TOPLEVEL="$PWD"
+        ./build-aux/ci/check-commit-hooks "${GITHUB_BEFORE}..${GITHUB_REF}"

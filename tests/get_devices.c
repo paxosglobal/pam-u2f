@@ -13,6 +13,32 @@
 #include <string.h>
 #include "../util.h"
 
+static void test_nouserok(const char *username) {
+  device_t *dev;
+  unsigned ndevs;
+  cfg_t cfg;
+  int rc;
+
+  memset(&cfg, 0, sizeof(cfg_t));
+  cfg.auth_file = "credentials/this_file_does_not_exist.cred";
+  cfg.debug = 1;
+  cfg.debug_file = stderr;
+  cfg.max_devs = 1;
+  cfg.nouserok = 1;
+
+  dev = calloc(cfg.max_devs, sizeof(*dev));
+  assert(dev != NULL);
+
+  rc = get_devices_from_authfile(&cfg, username, dev, &ndevs);
+  assert(rc == PAM_IGNORE);
+
+  cfg.auth_file = "credentials/empty.cred";
+  rc = get_devices_from_authfile(&cfg, username, dev, &ndevs);
+  assert(rc == PAM_IGNORE);
+
+  free_devices(dev, ndevs);
+}
+
 static void test_ssh_credential(const char *username) {
   device_t *dev;
   unsigned ndevs;
@@ -30,7 +56,7 @@ static void test_ssh_credential(const char *username) {
   assert(dev != NULL);
 
   rc = get_devices_from_authfile(&cfg, username, dev, &ndevs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(ndevs == 1);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].attributes, "+presence") == 0);
@@ -60,7 +86,7 @@ static void test_old_credential(const char *username) {
 
   dev = calloc(cfg.max_devs, sizeof(*dev));
   rc = get_devices_from_authfile(&cfg, username, dev, &ndevs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(ndevs == 1);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].attributes, "+presence") == 0);
@@ -93,7 +119,7 @@ static void test_limited_count(const char *username) {
   dev = calloc(cfg.max_devs, sizeof(*dev));
   assert(dev != NULL);
   rc = get_devices_from_authfile(&cfg, username, dev, &ndevs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(ndevs == 1);
   assert(strcmp(dev[0].coseType, "eddsa") == 0);
   assert(strcmp(dev[0].keyHandle,
@@ -111,7 +137,7 @@ static void test_limited_count(const char *username) {
   dev = calloc(cfg.max_devs, sizeof(*dev));
   assert(dev != NULL);
   rc = get_devices_from_authfile(&cfg, username, dev, &ndevs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(ndevs == 2);
   assert(strcmp(dev[0].coseType, "eddsa") == 0);
   assert(strcmp(dev[0].keyHandle,
@@ -152,7 +178,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 1);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "vlcWFQFik8gJySuxMTlRwSDvnq9u/mlMXRIqv4rd7Kq2CJj1V9Uh9PqbTF8UkY3EcQfHeS0G3nY0ibyxXE0pdw==") == 0);
@@ -165,7 +191,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_-V.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 1);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "qf/qcQqFloToNoUMnp2cWg8pUPKoJ0CJFyP0wqpbpOgcD+hzEOJEBaHFbnnYP9d/zLKuwTsQ1nRpSc/aDJTEeQ==") == 0);
@@ -178,7 +204,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_-N.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 1);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "IPbgFVDLguVOr5GzdV7C5MH4Ec+bWfG2hifOy0IWWvNsHUZyN5x0rqbAoGWQPgxbAuQTKfk/n+3U9h4AWf8QXg==") == 0);
@@ -191,7 +217,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_-V-N.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 1);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "HftI6IHewEFB4OhBMeT9WjnG097GYvpE4dTxSS33JTRzRP6V/oBPyj3vurnTRJwif98V8YhceMAH8lDePA1dxQ==") == 0);
@@ -204,7 +230,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_-P.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 1);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "yvFPHZBdPoBcdhF86mImwNQm2DUgfPw0s26QCpm4XQO0is4qlx3nIdyVP9WHszpJ5uFV/1mjd09L3P6ton1fAw==") == 0);
@@ -217,7 +243,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_-P-V.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 1);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "WSSDFwB8Bv4wg5pOLzYNRsqyJYi6/rbuxL6nzuvPOkpSslyNX/8lcZSsPfBmuWkRE1CNh7xvalAlBUz1/LUcbg==") == 0);
@@ -230,7 +256,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_-P-N.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 1);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "+/l9LJ6dwbnDLff0PqkDhMEOWsruM+aYP+bzQdaCq3QmTGnh0dbcblfLaYs86XgcirS9OEoEkohB5pd8mhwSMQ==") == 0);
@@ -243,7 +269,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_-P-V-N.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 1);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "vw9z9n3ndQkTKPY3+LDy1Fd2otIsV5LgcYE+dR0buViSZnKcLJ1kav46mQ47jtelw82/6q3Z2/VKQ44F763tVg==") == 0);
@@ -256,7 +282,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_-r.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 1);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "*") == 0);
@@ -269,7 +295,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_-r-V.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 1);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "*") == 0);
@@ -282,7 +308,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_-r-N.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 1);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "*") == 0);
@@ -295,7 +321,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_-r-V-N.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 1);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "*") == 0);
@@ -308,7 +334,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_-r-P.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 1);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "*") == 0);
@@ -321,7 +347,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_-r-P-V.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 1);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "*") == 0);
@@ -334,7 +360,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_-r-P-N.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 1);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "*") == 0);
@@ -347,7 +373,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_-r-P-V-N.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 1);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "*") == 0);
@@ -360,7 +386,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_double_.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 2);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "THwoppI4JkuHWwQsSvsH6E987xAokX4MjB8Vh/lVghzW3iBtMglBw1epdwjbVEpKMVNqwYq6h71p3sQqnaTgLQ==") == 0);
@@ -378,7 +404,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_double_-V.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 2);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "oBQ1hIWiYfhJ8g6DFWawe0xOAlKtcPiBDKyoS8ydd/zwXbIEU+fHfnzjh46gLjV67+rt1ycCTTMj+P/7EsLNhg==") == 0);
@@ -396,7 +422,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_double_-N.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 2);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "WWJqEWaCASU+nsp2bTFh4LbJVOnf1ZRgNxmDcBuThynSTxDgO1GxGcTYg0Ilo/RF4YXvVCur7gfALYZA69lDTg==") == 0);
@@ -414,7 +440,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_double_-V-N.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 2);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "5sVKkhoc+afHBtAp7csIg/Sq4RFi1arnr/Qi9quwpNZ4gPhlI6FFBP4CmH8HLw/n5xt8iQxUD83aue23WbrDVA==") == 0);
@@ -432,7 +458,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_double_-P.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 2);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "ACoC1fhEYhdOstzkaCb1PqcU4T6xMrXxe5GEQjPDsheOxJzWGXTpaA3abmHZ3khcJ8Off/ecyPq2kMMqh3l7Xg==") == 0);
@@ -450,7 +476,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_double_-P-V.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 2);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "7jPjHZzm/Ec6oKy6gpq+XXI3P435OLJFO4o3iGH8KUQlEw+1Zv0FmUtguJ2HIZifRsIyMILdu2rwCDgcqmuj9Q==") == 0);
@@ -468,7 +494,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_double_-P-N.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 2);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "USgDNJZ9Z8GXzQgWdrkFJ5S+WsqKhdg9zHmoMifow3xBd8Rn0ZH2udPuRs6Q8Y/13BOCL9lEhdxc+1JAoP0j8w==") == 0);
@@ -486,7 +512,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_double_-P-V-N.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 2);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "Ypw0/A5KEPshXH0zO72Qlgt1uHvB4VnVRBpObzVGDeS8LxR9smealISARIOo3rlOLgjqj6dkJxqu1LoLm22UpA==") == 0);
@@ -504,7 +530,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_double_-r.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 2);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "*") == 0);
@@ -522,7 +548,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_double_-r-V.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 2);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "*") == 0);
@@ -540,7 +566,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_double_-r-N.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 2);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "*") == 0);
@@ -558,7 +584,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_double_-r-V-N.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 2);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "*") == 0);
@@ -576,7 +602,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_double_-r-P.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 2);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "*") == 0);
@@ -594,7 +620,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_double_-r-P-V.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 2);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "*") == 0);
@@ -612,7 +638,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_double_-r-P-N.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 2);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "*") == 0);
@@ -630,7 +656,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_double_-r-P-V-N.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 2);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "*") == 0);
@@ -648,7 +674,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_mixed_12.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 2);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "ooq2bCWeHFXzWqKwWFRliREQjOtUWKtWJbr7KwSh3FLNiCFgBuie4tqq3Pee86o7ew32u1+ITLsCBEYPrTQMAg==") == 0);
@@ -666,7 +692,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_mixed_1-P2.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 2);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "9HY72OR/kQECy5PbwfJwSaWZFlLL1CHamlm1LMZFozCBj6hzq4V9BpkkkMObxNL9gFd8yOXKDflFiVVoGq7sWQ==") == 0);
@@ -684,7 +710,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_mixed_-P12.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 2);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "kNfZ8Uot7TcImjCXhji32Apur3172TYc4XLA0uDQsdW1lrIRecyZP5chyPrkNxIrRIZ58UgiMxD72fiaCiQghw==") == 0);
@@ -702,7 +728,7 @@ static void test_new_credentials(const char *username) {
   assert(dev != NULL);
   cfg.auth_file = "credentials/new_mixed_-P1-P2.cred";
   rc = get_devices_from_authfile(&cfg, username, dev, &n_devs);
-  assert(rc == 1);
+  assert(rc == PAM_SUCCESS);
   assert(n_devs == 2);
   assert(strcmp(dev[0].coseType, "es256") == 0);
   assert(strcmp(dev[0].keyHandle, "gqCuXGhiA9P4PhXPgrMjQCdgBPkLHHmQcDF/AMOp9vMuCoreRgwWlckMvCdHnsRTohdGqKZgVT/M3HVu4/UiXA==") == 0);
@@ -721,12 +747,13 @@ static void test_new_credentials(const char *username) {
 }
 
 int main(void) {
-  struct passwd *pwd;
+  const struct passwd *pwd;
   char *username;
 
   assert((pwd = getpwuid(geteuid())) != NULL);
   assert((username = strdup(pwd->pw_name)) != NULL);
 
+  test_nouserok(username);
   test_ssh_credential(username);
   test_old_credential(username);
   test_limited_count(username);
